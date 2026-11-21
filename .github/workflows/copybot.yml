@@ -27,11 +27,13 @@ jobs:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           BITPANDA_API_KEY: ${{ secrets.BITPANDA_API_KEY }}
         run: |
+          set -o pipefail
           # Sicurezza: su GitHub il bot gira SOLO in simulazione
           python3 -c "import json,sys; c=json.load(open('config.json')); sys.exit('mode deve essere paper' if c.get('mode')!='paper' else 0)"
           python3 bot.py once 2>&1 | tee -a bot.log
 
       - name: Salvo stato e operazioni nel repository
+        if: always()
         run: |
           git config user.name "copybot"
           git config user.email "copybot@users.noreply.github.com"
