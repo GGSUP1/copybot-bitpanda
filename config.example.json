@@ -1,0 +1,29 @@
+{
+  "mode": "paper",
+  "quote": "EUR",
+  "chainid": 1,
+  "poll_seconds": 120,
+
+  "paper_start_cash": 1000,
+  "trade_eur": 30,
+  "max_eur_per_asset": 90,
+  "max_total_eur": 300,
+  "max_trades_per_day": 6,
+  "fee_rate": 0.0025,
+
+  "require_initiated": true,
+
+  "wallets": [
+    { "name": "esempio-1", "address": "0xINCOLLA_QUI_IL_WALLET_DA_SEGUIRE" }
+  ],
+
+  "tokens": {
+    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "ETH",
+    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": "BTC",
+    "0x514910771AF9Ca656af840dff83E8264EcF986CA": "LINK",
+    "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984": "UNI",
+    "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9": "AAVE",
+    "0x6982508145454Ce325dDbE47a25d4ec3d2311933": "PEPE",
+    "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE": "SHIB"
+  }
+}

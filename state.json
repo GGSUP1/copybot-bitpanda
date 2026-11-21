@@ -1,0 +1,18 @@
+{
+  "wallets": {
+    "0x6cd66dbdfe289ab83d7311b668ada83a12447e21": {
+      "last_block": 26462628
+    }
+  },
+  "seen": [],
+  "paper": {
+    "cash": 1000,
+    "positions": {},
+    "realized_pnl": 0.0
+  },
+  "live_positions": {},
+  "day": {
+    "date": "",
+    "trades": 0
+  }
+}
