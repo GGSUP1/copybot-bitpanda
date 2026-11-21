@@ -388,7 +388,10 @@ class CopyBot:
             if blocks:
                 wstate["last_block"] = max(max(blocks), wstate["last_block"])
         self.state["seen"] = list(seen)[-5000:]
+        self.state["last_check"] = datetime.now().isoformat(timespec="seconds")
         save_json(self.state_path, self.state)
+        log(f"Giro completato. Liquidità simulata: {self.state['paper']['cash']:.2f} EUR, "
+            f"posizioni aperte: {len(self.state['paper']['positions'])}")
 
     # ---- report
     def report(self):
