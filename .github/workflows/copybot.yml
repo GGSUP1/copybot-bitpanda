@@ -24,6 +24,7 @@ jobs:
 
       - name: Controllo dei wallet (SIMULAZIONE)
         env:
+          TZ: Europe/Rome
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           BITPANDA_API_KEY: ${{ secrets.BITPANDA_API_KEY }}
         run: |
