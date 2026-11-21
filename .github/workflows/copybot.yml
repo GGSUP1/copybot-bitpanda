@@ -2,7 +2,7 @@ name: copybot
 
 on:
   schedule:
-    - cron: "7,37 * * * *"   # ogni 30 minuti (GitHub può ritardare di qualche minuto)
+    - cron: "13,43 * * * *"   # ogni 30 minuti (GitHub può ritardare di qualche minuto)
   workflow_dispatch: {}       # avvio manuale dal tab Actions
   push:                       # parte anche quando cambiano codice o configurazione
     branches: [main]
