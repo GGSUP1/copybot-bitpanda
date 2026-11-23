@@ -3,20 +3,23 @@
   "quote": "EUR",
   "chainid": 1,
   "poll_seconds": 120,
-
   "paper_start_cash": 1000,
   "trade_eur": 30,
   "max_eur_per_asset": 90,
   "max_total_eur": 300,
   "max_trades_per_day": 6,
   "fee_rate": 0.0025,
-
   "require_initiated": true,
-
   "wallets": [
-    { "name": "Arthur Hayes 4", "address": "0x6cd66DbdFe289ab83d7311B668ADA83A12447e21" }
+    {
+      "name": "Arthur Hayes 4",
+      "address": "0x6cd66DbdFe289ab83d7311B668ADA83A12447e21"
+    },
+    {
+      "name": "7 Siblings",
+      "address": "0x28a55c4b4f9615fde3cdaddf6cc01fcf2e38a6b0"
+    }
   ],
-
   "tokens": {
     "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "ETH",
     "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": "BTC",
@@ -29,5 +32,8 @@
     "0x808507121B80c02388fAd14726482e061B8da827": "PENDLE",
     "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32": "LDO",
     "0xFe0c30065B384F05761f15d0CC899D4F9F9Cc0eB": "ETHFI"
-  }
+  },
+  "trusted_counterparties": [
+    "0x9008D19f58AAbD9eD0D60971565AA8510560ab41"
+  ]
 }

@@ -120,6 +120,10 @@ class Etherscan:
         return self._get(module="account", action="tokentx", address=address,
                          startblock=startblock, endblock=99999999, sort="asc")
 
+    def internal_txs(self, address, startblock):
+        return self._get(module="account", action="txlistinternal", address=address,
+                         startblock=startblock, endblock=99999999, sort="asc")
+
     def normal_txs(self, address, startblock):
         return self._get(module="account", action="txlist", address=address,
                          startblock=startblock, endblock=99999999, sort="asc")
@@ -155,46 +159,63 @@ class Fusion:
 
 # ---------------------------------------------------------------- segnali
 
-def extract_signals(wallet, token_txs, normal_txs, tokens, require_initiated=True):
+def extract_signals(wallet, token_txs, normal_txs, tokens, require_initiated=True,
+                    internal_txs=None, trusted=None, eth_asset="ETH"):
     """
-    Trasforma i trasferimenti di token di un wallet in segnali Buy/Sell.
+    Trasforma i movimenti di un wallet in segnali Buy/Sell.
 
     tokens: {indirizzo_contratto_minuscolo: simbolo_bitpanda}. Si usano gli indirizzi dei
     contratti e non i simboli, perché esistono token-truffa con lo stesso simbolo.
 
     require_initiated: conta solo le transazioni avviate dal wallet stesso (uno swap fatto da lui),
     e ignora i token ricevuti passivamente (airdrop, spam, invii da altri).
+
+    trusted: indirizzi di exchange decentralizzati (es. CoW Protocol) i cui scambi contano anche
+    se la transazione l'ha inviata un altro (con CoW la manda un "solver", non il wallet).
+    internal_txs: ETH nativo ricevuto da un indirizzo fidato = acquisto di ETH.
     """
     w = wallet.lower()
+    trusted = {a.lower() for a in (trusted or [])}
     initiated = {t["hash"] for t in normal_txs if t.get("from", "").lower() == w}
     merged = {}
+
+    def add(h, block, ts, asset, side, qty):
+        key = (h, asset, side)
+        if key in merged:
+            merged[key]["wallet_qty"] += qty
+        else:
+            merged[key] = {"wallet": w, "hash": h, "block": int(block), "time": int(ts),
+                           "asset": asset, "side": side, "wallet_qty": qty}
+
     for t in token_txs:
         contract = t.get("contractAddress", "").lower()
         if contract not in tokens:
             continue
-        if require_initiated and t["hash"] not in initiated:
-            continue
-        if t.get("to", "").lower() == w:
-            side = "Buy"
-        elif t.get("from", "").lower() == w:
-            side = "Sell"
+        frm, to = t.get("from", "").lower(), t.get("to", "").lower()
+        if to == w:
+            side, other = "Buy", frm
+        elif frm == w:
+            side, other = "Sell", to
         else:
+            continue
+        if require_initiated and t["hash"] not in initiated and other not in trusted:
             continue
         qty = int(t["value"]) / 10 ** int(t.get("tokenDecimal") or 18)
-        key = (t["hash"], tokens[contract], side)
-        if key in merged:
-            merged[key]["wallet_qty"] += qty
-        else:
-            merged[key] = {"wallet": w, "hash": t["hash"], "block": int(t["blockNumber"]),
-                           "time": int(t["timeStamp"]), "asset": tokens[contract],
-                           "side": side, "wallet_qty": qty}
+        add(t["hash"], t["blockNumber"], t["timeStamp"], tokens[contract], side, qty)
+
+    for it in internal_txs or []:
+        if str(it.get("isError", "0")) != "0":
+            continue
+        if it.get("to", "").lower() == w and it.get("from", "").lower() in trusted and int(it["value"]) > 0:
+            add(it["hash"], it["blockNumber"], it["timeStamp"], eth_asset, "Buy", int(it["value"]) / 1e18)
+
     # se nella stessa transazione lo stesso token entra ed esce, non è un segnale chiaro
     out = []
-    for (h, asset, side), s in merged.items():
+    for (h, asset, side), sig in merged.items():
         opposite = (h, asset, "Sell" if side == "Buy" else "Buy")
         if opposite not in merged:
-            out.append(s)
-    return sorted(out, key=lambda s: (s["block"], s["side"] != "Sell"))
+            out.append(sig)
+    return sorted(out, key=lambda x: (x["block"], x["side"] != "Sell"))
 
 
 # ---------------------------------------------------------------- bot
@@ -368,12 +389,16 @@ class CopyBot:
                     log(f"{name}: inizio a seguirlo dal blocco {block}")
                     continue
                 start = wstate["last_block"] + 1
+                req_init = wallet.get("require_initiated", self.cfg.get("require_initiated", True))
+                trusted = self.cfg.get("trusted_counterparties", [])
                 ttx = self.es.token_transfers(addr, start)
-                ntx = self.es.normal_txs(addr, start) if self.cfg.get("require_initiated", True) else []
+                ntx = self.es.normal_txs(addr, start) if req_init else []
+                itx = self.es.internal_txs(addr, start) if trusted else []
             except Exception as e:  # rete o API: riprovo al prossimo giro
                 log(f"{name}: errore lettura dati ({e})")
                 continue
-            signals = extract_signals(addr, ttx, ntx, self.tokens, self.cfg.get("require_initiated", True))
+            signals = extract_signals(addr, ttx, ntx, self.tokens, req_init,
+                                      internal_txs=itx, trusted=trusted)
             for s in signals:
                 key = f"{s['hash']}:{s['asset']}:{s['side']}"
                 if key in seen:
@@ -384,7 +409,7 @@ class CopyBot:
                     self.handle(s)
                 except Exception as e:
                     log(f"  errore esecuzione: {e}")
-            blocks = [int(t["blockNumber"]) for t in ttx + ntx]
+            blocks = [int(t["blockNumber"]) for t in ttx + ntx + itx]
             if blocks:
                 wstate["last_block"] = max(max(blocks), wstate["last_block"])
         self.state["seen"] = list(seen)[-5000:]
