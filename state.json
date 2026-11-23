@@ -1,7 +1,7 @@
 {
   "wallets": {
     "0x6cd66dbdfe289ab83d7311b668ada83a12447e21": {
-      "last_block": 26477424
+      "last_block": 26477571
     }
   },
   "seen": [],
@@ -15,5 +15,5 @@
     "date": "",
     "trades": 0
   },
-  "last_check": "2026-11-23T12:30:46"
+  "last_check": "2026-11-23T13:00:58"
 }
