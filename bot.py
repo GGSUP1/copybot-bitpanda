@@ -146,6 +146,11 @@ class Fusion:
         data = self.fetch(f"{FUSION_URL}/tickers?{q}", headers=self._h())
         return {t["pair"]: float(t["price"]) for t in data}
 
+    def candles(self, pair, interval="1h", limit=60):
+        q = urllib.parse.urlencode({"interval": interval, "limit": limit})
+        data = self.fetch(f"{FUSION_URL}/candles/{pair}?{q}", headers=self._h())
+        return sorted(data, key=lambda c: int(c["timestamp"]))
+
     def balances(self):
         data = self.fetch(f"{FUSION_URL}/account/balances", headers=self._h())
         return {b["symbol"]: float(b["available"]) for b in data}
@@ -218,6 +223,35 @@ def extract_signals(wallet, token_txs, normal_txs, tokens, require_initiated=Tru
     return sorted(out, key=lambda x: (x["block"], x["side"] != "Sell"))
 
 
+INTERVAL_SECONDS = {"1m": 60, "5m": 300, "10m": 600, "15m": 900, "30m": 1800,
+                    "1h": 3600, "4h": 14400, "1d": 86400}
+
+
+def sma_cross(candles, fast, slow, interval="1h", now=None):
+    """
+    Incrocio di medie mobili sui prezzi di chiusura delle candele CHIUSE.
+    Restituisce (segnale, timestamp_ultima_candela_chiusa) con segnale "Buy", "Sell" o None.
+    """
+    now = time.time() if now is None else now
+    step = INTERVAL_SECONDS.get(interval, 3600)
+    closed = [c for c in candles if int(c["timestamp"]) + step <= now]
+    if len(closed) < slow + 1:
+        return None, None
+    closes = [float(c["close"]) for c in closed]
+
+    def sma(values, n):
+        return sum(values[-n:]) / n
+
+    fast_now, slow_now = sma(closes, fast), sma(closes, slow)
+    fast_prev, slow_prev = sma(closes[:-1], fast), sma(closes[:-1], slow)
+    last_ts = int(closed[-1]["timestamp"])
+    if fast_prev <= slow_prev and fast_now > slow_now:
+        return "Buy", last_ts
+    if fast_prev >= slow_prev and fast_now < slow_now:
+        return "Sell", last_ts
+    return None, last_ts
+
+
 # ---------------------------------------------------------------- bot
 
 class CopyBot:
@@ -277,18 +311,19 @@ class CopyBot:
     # ---- esecuzione
     def handle(self, sig):
         asset, side = sig["asset"], sig["side"]
+        sig.setdefault("pos_key", asset)
         pair = self.pair_of(asset)
         if pair not in self.pairs:
             log(f"  {asset}: coppia {pair} non disponibile su Bitpanda Fusion, salto")
             return
         if side == "Buy":
-            reason = self.can_buy(asset)
+            reason = self.can_buy(sig["pos_key"])
             if reason:
                 log(f"  Buy {asset} saltato: {reason}")
                 return
             self.buy(sig, pair)
         else:
-            if self.positions().get(asset, {}).get("qty", 0) <= 0:
+            if self.positions().get(sig["pos_key"], {}).get("qty", 0) <= 0:
                 log(f"  Sell {asset}: non ne ho, niente da vendere")
                 return
             self.sell(sig, pair)
@@ -316,17 +351,17 @@ class CopyBot:
                 return
             qty = eur / price
             self.state["paper"]["cash"] = cash - eur * (1 + fee)
-        pos = self.positions().setdefault(asset, {"qty": 0.0, "cost": 0.0})
+        pos = self.positions().setdefault(sig["pos_key"], {"qty": 0.0, "cost": 0.0})
         pos["qty"] += qty
         pos["cost"] += eur
         self.state["day"]["trades"] += 1
-        self.record(sig, pair, "Buy", qty, price, eur, "copia acquisto")
+        self.record(sig, pair, "Buy", qty, price, eur, "strategia acquisto" if sig["wallet"].startswith("strategia") else "copia acquisto")
         log(f"  {'REALE' if self.live else 'SIM'} Buy {qty:.6f} {asset} a {price:.4f} ({eur:.2f} EUR)")
 
     def sell(self, sig, pair):
         asset = sig["asset"]
         info = self.pairs[pair]
-        pos = self.positions()[asset]
+        pos = self.positions()[sig["pos_key"]]
         price = self.fu.prices([pair])[pair]
         fee = self.cfg["fee_rate"]
         qty = pos["qty"]
@@ -352,9 +387,9 @@ class CopyBot:
         pos["cost"] -= cost_part
         # i residui troppo piccoli (arrotondamenti, commissioni) non si possono vendere: li tolgo
         if pos["qty"] <= 1e-12 or pos["qty"] * price < float(info.get("minOrderAmount") or 0):
-            del self.positions()[asset]
+            del self.positions()[sig["pos_key"]]
         self.state["day"]["trades"] += 1
-        self.record(sig, pair, "Sell", qty, price, proceeds, f"copia vendita, risultato {pnl:+.2f} EUR")
+        self.record(sig, pair, "Sell", qty, price, proceeds, ("strategia" if sig["wallet"].startswith("strategia") else "copia") + f" vendita, risultato {pnl:+.2f} EUR")
         log(f"  {'REALE' if self.live else 'SIM'} Sell {qty:.6f} {asset} a {price:.4f} -> {pnl:+.2f} EUR")
 
     def wait_fill(self, order, fallback_price, fallback_eur):
@@ -412,24 +447,58 @@ class CopyBot:
             blocks = [int(t["blockNumber"]) for t in ttx + ntx + itx]
             if blocks:
                 wstate["last_block"] = max(max(blocks), wstate["last_block"])
+        self.strategy_tick()
         self.state["seen"] = list(seen)[-5000:]
         self.state["last_check"] = datetime.now().isoformat(timespec="seconds")
         save_json(self.state_path, self.state)
         log(f"Giro completato. Liquidità simulata: {self.state['paper']['cash']:.2f} EUR, "
             f"posizioni aperte: {len(self.state['paper']['positions'])}")
 
+    # ---- strategia sul prezzo
+    def strategy_tick(self):
+        st = self.cfg.get("strategy") or {}
+        if not st.get("enabled"):
+            return
+        fast, slow, interval = int(st.get("fast", 20)), int(st.get("slow", 50)), st.get("interval", "1h")
+        source = st.get("name", f"SMA{fast}/{slow}")
+        mem = self.state.setdefault("strategy", {})
+        for pair in st.get("pairs", []):
+            asset = pair.split("-")[0]
+            try:
+                candles = self.fu.candles(pair, interval, slow + 5)
+            except Exception as e:
+                log(f"Strategia {pair}: errore lettura candele ({e})")
+                continue
+            signal, bar = sma_cross(candles, fast, slow, interval)
+            if bar is None or mem.get(pair) == bar:
+                continue  # dati insufficienti o candela già valutata
+            mem[pair] = bar
+            if not signal:
+                continue
+            key = f"{asset}#{source}"
+            holding = self.positions().get(key, {}).get("qty", 0) > 0
+            if (signal == "Buy" and holding) or (signal == "Sell" and not holding):
+                continue
+            log(f"Strategia {source}: {signal} {asset} (incrocio medie su candele {interval})")
+            sig = {"wallet": f"strategia:{source}", "hash": f"{source}-{pair}-{bar}",
+                   "asset": asset, "side": signal, "wallet_qty": 0, "pos_key": key}
+            try:
+                self.handle(sig)
+            except Exception as e:
+                log(f"  errore esecuzione: {e}")
+
     # ---- report
     def report(self):
         p = self.state["paper"]
         pos = p["positions"]
-        prices = self.fu.prices([self.pair_of(a) for a in pos]) if pos else {}
+        prices = self.fu.prices({self.pair_of(a.split("#")[0]) for a in pos}) if pos else {}
         value = 0.0
         print("\nPORTAFOGLIO SIMULATO")
-        print(f"{'asset':<8}{'quantità':>16}{'costo EUR':>12}{'valore EUR':>12}{'risultato':>12}")
+        print(f"{'posizione':<22}{'quantità':>16}{'costo EUR':>12}{'valore EUR':>12}{'risultato':>12}")
         for a, x in pos.items():
-            v = x["qty"] * prices.get(self.pair_of(a), 0)
+            v = x["qty"] * prices.get(self.pair_of(a.split("#")[0]), 0)
             value += v
-            print(f"{a:<8}{x['qty']:>16.6f}{x['cost']:>12.2f}{v:>12.2f}{v - x['cost']:>+12.2f}")
+            print(f"{a:<22}{x['qty']:>16.6f}{x['cost']:>12.2f}{v:>12.2f}{v - x['cost']:>+12.2f}")
         total = p["cash"] + value
         start = self.cfg["paper_start_cash"]
         print(f"\nLiquidità:            {p['cash']:.2f} EUR")
