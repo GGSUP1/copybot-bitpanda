@@ -4,7 +4,7 @@
       "last_block": 26477571
     },
     "0x28a55c4b4f9615fde3cdaddf6cc01fcf2e38a6b0": {
-      "last_block": 26481056
+      "last_block": 26481528
     }
   },
   "seen": [],
@@ -18,9 +18,9 @@
     "date": "",
     "trades": 0
   },
-  "last_check": "2026-11-24T01:30:47",
+  "last_check": "2026-11-24T02:01:01",
   "strategy": {
-    "ETH-EUR": 1795474800,
-    "BTC-EUR": 1795474800
+    "ETH-EUR": 1795478400,
+    "BTC-EUR": 1795478400
   }
 }
