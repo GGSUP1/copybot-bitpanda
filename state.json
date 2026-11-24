@@ -1,7 +1,7 @@
 {
   "wallets": {
     "0x6cd66dbdfe289ab83d7311b668ada83a12447e21": {
-      "last_block": 26484754
+      "last_block": 26484903
     },
     "0x28a55c4b4f9615fde3cdaddf6cc01fcf2e38a6b0": {
       "last_block": 26481528
@@ -18,7 +18,7 @@
     "date": "",
     "trades": 0
   },
-  "last_check": "2026-11-24T13:01:04",
+  "last_check": "2026-11-24T13:30:55",
   "strategy": {
     "ETH-EUR": 1795518000,
     "BTC-EUR": 1795518000
