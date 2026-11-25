@@ -98,7 +98,7 @@ def save_json(path, data):
 # ---------------------------------------------------------------- client API
 
 class Etherscan:
-    def __init__(self, key, chainid=1, fetch=http_json, pause=0.25):
+    def __init__(self, key, chainid=1, fetch=http_json, pause=0.4):
         self.key, self.chainid, self.fetch, self.pause = key, chainid, fetch, pause
 
     def _get(self, **params):
@@ -245,6 +245,7 @@ def sma_cross(candles, fast, slow, interval="1h", now=None):
     fast_now, slow_now = sma(closes, fast), sma(closes, slow)
     fast_prev, slow_prev = sma(closes[:-1], fast), sma(closes[:-1], slow)
     last_ts = int(closed[-1]["timestamp"])
+    sma_cross.last = (fast_now, slow_now, closes[-1])  # per il registro
     if fast_prev <= slow_prev and fast_now > slow_now:
         return "Buy", last_ts
     if fast_prev >= slow_prev and fast_now < slow_now:
@@ -469,10 +470,16 @@ class CopyBot:
             except Exception as e:
                 log(f"Strategia {pair}: errore lettura candele ({e})")
                 continue
+            sma_cross.last = None
             signal, bar = sma_cross(candles, fast, slow, interval)
             if bar is None or mem.get(pair) == bar:
                 continue  # dati insufficienti o candela già valutata
             mem[pair] = bar
+            if sma_cross.last:
+                f, sl, last = sma_cross.last
+                trend = "sopra" if f > sl else "sotto"
+                log(f"Strategia {pair}: prezzo {last:.2f}, media{fast} {f:.2f} {trend} media{slow} {sl:.2f} "
+                    f"(distanza {abs(f - sl) / sl * 100:.2f}%)")
             if not signal:
                 continue
             key = f"{asset}#{source}"
