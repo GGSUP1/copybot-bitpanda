@@ -7,7 +7,7 @@
   "trade_eur": 30,
   "max_eur_per_asset": 90,
   "max_total_eur": 300,
-  "max_trades_per_day": 6,
+  "max_trades_per_day": 10,
   "fee_rate": 0.0025,
   "require_initiated": true,
   "wallets": [
@@ -38,13 +38,14 @@
   ],
   "strategy": {
     "enabled": true,
-    "name": "SMA20/50",
+    "name": "SMA9/21-15m",
     "pairs": [
       "ETH-EUR",
       "BTC-EUR"
     ],
-    "interval": "1h",
-    "fast": 20,
-    "slow": 50
+    "interval": "15m",
+    "fast": 9,
+    "slow": 21,
+    "mode": "state"
   }
 }

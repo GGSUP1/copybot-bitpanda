@@ -227,7 +227,7 @@ INTERVAL_SECONDS = {"1m": 60, "5m": 300, "10m": 600, "15m": 900, "30m": 1800,
                     "1h": 3600, "4h": 14400, "1d": 86400}
 
 
-def sma_cross(candles, fast, slow, interval="1h", now=None):
+def sma_cross(candles, fast, slow, interval="1h", now=None, mode="cross"):
     """
     Incrocio di medie mobili sui prezzi di chiusura delle candele CHIUSE.
     Restituisce (segnale, timestamp_ultima_candela_chiusa) con segnale "Buy", "Sell" o None.
@@ -246,6 +246,9 @@ def sma_cross(candles, fast, slow, interval="1h", now=None):
     fast_prev, slow_prev = sma(closes[:-1], fast), sma(closes[:-1], slow)
     last_ts = int(closed[-1]["timestamp"])
     sma_cross.last = (fast_now, slow_now, closes[-1])  # per il registro
+    if mode == "state":
+        # posizione: dentro quando la veloce è sopra la lenta, fuori quando è sotto
+        return ("Buy" if fast_now > slow_now else "Sell"), last_ts
     if fast_prev <= slow_prev and fast_now > slow_now:
         return "Buy", last_ts
     if fast_prev >= slow_prev and fast_now < slow_now:
@@ -471,7 +474,7 @@ class CopyBot:
                 log(f"Strategia {pair}: errore lettura candele ({e})")
                 continue
             sma_cross.last = None
-            signal, bar = sma_cross(candles, fast, slow, interval)
+            signal, bar = sma_cross(candles, fast, slow, interval, mode=st.get("mode", "cross"))
             if bar is None or mem.get(pair) == bar:
                 continue  # dati insufficienti o candela già valutata
             mem[pair] = bar
@@ -486,7 +489,7 @@ class CopyBot:
             holding = self.positions().get(key, {}).get("qty", 0) > 0
             if (signal == "Buy" and holding) or (signal == "Sell" and not holding):
                 continue
-            log(f"Strategia {source}: {signal} {asset} (incrocio medie su candele {interval})")
+            log(f"Strategia {source}: {signal} {asset} (medie {fast}/{slow} su candele {interval})")
             sig = {"wallet": f"strategia:{source}", "hash": f"{source}-{pair}-{bar}",
                    "asset": asset, "side": signal, "wallet_qty": 0, "pos_key": key}
             try:
