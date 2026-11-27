@@ -476,3 +476,6 @@
 [2026-11-27 00:30:48] Strategia SMA9/21-15m: Sell BTC (medie 9/21 su candele 15m)
 [2026-11-27 00:30:48]   SIM Sell 0.000545 BTC a 55071.2600 -> -0.08 EUR
 [2026-11-27 00:30:48] Giro completato. Liquidità simulata: 999.64 EUR, posizioni aperte: 0
+[2026-11-27 01:01:06] Strategia ETH-EUR: prezzo 1538.62, media9 1542.17 sotto media21 1547.84 (distanza 0.37%)
+[2026-11-27 01:01:09] Strategia BTC-EUR: prezzo 55154.92, media9 55155.62 sotto media21 55236.82 (distanza 0.15%)
+[2026-11-27 01:01:09] Giro completato. Liquidità simulata: 999.64 EUR, posizioni aperte: 0
