@@ -9,23 +9,18 @@
   },
   "seen": [],
   "paper": {
-    "cash": 969.5241431118054,
-    "positions": {
-      "ETH#SMA9/21-15m": {
-        "qty": 0.01966884225916322,
-        "cost": 30.075
-      }
-    },
-    "realized_pnl": -0.40085688819452514
+    "cash": 999.4429629157071,
+    "positions": {},
+    "realized_pnl": -0.5570370842928796
   },
   "live_positions": {},
   "day": {
     "date": "2026-11-27",
-    "trades": 9
+    "trades": 10
   },
-  "last_check": "2026-11-27T21:30:50",
+  "last_check": "2026-11-27T22:01:04",
   "strategy": {
-    "ETH-EUR": 1795810500,
-    "BTC-EUR": 1795810500
+    "ETH-EUR": 1795812300,
+    "BTC-EUR": 1795812300
   }
 }
