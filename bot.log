@@ -611,3 +611,10 @@
 [2026-11-27 20:30:53] Strategia ETH-EUR: prezzo 1528.87, media9 1524.74 sotto media21 1527.62 (distanza 0.19%)
 [2026-11-27 20:30:53] Strategia BTC-EUR: prezzo 54785.99, media9 54649.52 sotto media21 54762.03 (distanza 0.21%)
 [2026-11-27 20:30:53] Giro completato. Liquidità simulata: 999.78 EUR, posizioni aperte: 0
+[2026-11-27 21:01:03] Strategia ETH-EUR: prezzo 1526.50, media9 1526.66 sopra media21 1524.78 (distanza 0.12%)
+[2026-11-27 21:01:03] Strategia SMA9/21-15m: Buy ETH (medie 9/21 su candele 15m)
+[2026-11-27 21:01:04]   SIM Buy 0.019669 ETH a 1525.2550 (30.00 EUR)
+[2026-11-27 21:01:04] Strategia BTC-EUR: prezzo 54708.30, media9 54720.19 sopra media21 54691.93 (distanza 0.05%)
+[2026-11-27 21:01:04] Strategia SMA9/21-15m: Buy BTC (medie 9/21 su candele 15m)
+[2026-11-27 21:01:04]   SIM Buy 0.000549 BTC a 54694.0500 (30.00 EUR)
+[2026-11-27 21:01:04] Giro completato. Liquidità simulata: 939.63 EUR, posizioni aperte: 2
