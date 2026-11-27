@@ -304,11 +304,12 @@ class CopyBot:
             self.state["day"] = {"date": today, "trades": 0}
         if self.state["day"]["trades"] >= self.cfg["max_trades_per_day"]:
             return "raggiunto il limite di operazioni giornaliere"
+        slack = 1 + self.cfg.get("fee_rate", 0) + 1e-9  # i limiti valgono sull'importo, non sulle commissioni
         pos = self.positions().get(asset, {"cost": 0})
-        if pos["cost"] + self.cfg["trade_eur"] > self.cfg["max_eur_per_asset"]:
+        if pos["cost"] + self.cfg["trade_eur"] > self.cfg["max_eur_per_asset"] * slack:
             return f"limite di {self.cfg['max_eur_per_asset']} EUR su {asset}"
         invested = sum(p["cost"] for p in self.positions().values())
-        if invested + self.cfg["trade_eur"] > self.cfg["max_total_eur"]:
+        if invested + self.cfg["trade_eur"] > self.cfg["max_total_eur"] * slack:
             return f"limite totale investito di {self.cfg['max_total_eur']} EUR"
         return None
 
@@ -357,7 +358,8 @@ class CopyBot:
             self.state["paper"]["cash"] = cash - eur * (1 + fee)
         pos = self.positions().setdefault(sig["pos_key"], {"qty": 0.0, "cost": 0.0})
         pos["qty"] += qty
-        pos["cost"] += eur
+        # in simulazione il costo include la commissione d'acquisto, così il risultato è netto
+        pos["cost"] += eur if self.live else eur * (1 + fee)
         self.state["day"]["trades"] += 1
         self.record(sig, pair, "Buy", qty, price, eur, "strategia acquisto" if sig["wallet"].startswith("strategia") else "copia acquisto")
         log(f"  {'REALE' if self.live else 'SIM'} Buy {qty:.6f} {asset} a {price:.4f} ({eur:.2f} EUR)")
