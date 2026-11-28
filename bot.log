@@ -685,3 +685,6 @@
 [2026-11-28 06:01:03]   SIM Sell 0.019675 ETH a 1517.9500 -> -0.28 EUR
 [2026-11-28 06:01:03] Strategia BTC-EUR: prezzo 54813.43, media9 54809.39 sotto media21 54836.46 (distanza 0.05%)
 [2026-11-28 06:01:03] Giro completato. Liquidità simulata: 999.02 EUR, posizioni aperte: 0
+[2026-11-28 06:30:55] Strategia ETH-EUR: prezzo 1515.45, media9 1519.51 sotto media21 1521.14 (distanza 0.11%)
+[2026-11-28 06:30:55] Strategia BTC-EUR: prezzo 54655.26, media9 54775.12 sotto media21 54825.08 (distanza 0.09%)
+[2026-11-28 06:30:55] Giro completato. Liquidità simulata: 999.02 EUR, posizioni aperte: 0
